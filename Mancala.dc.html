@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div dir="ltr" style="background:#14B8A6; border-radius:30px; padding:10px; display:grid; grid-template-columns:52px repeat(6, minmax(0,1fr)) 52px; grid-template-rows:1fr 1fr; gap:6px">
+      <div style="grid-row:1 / 3; grid-column:1; background:#FFE6D2; border-radius:999px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; font-size:22px; color:#B5560F">{{ store.cpu }}</div>
+      <sc-for list="{{ top }}" as="p" hint-placeholder-count="6">
+        <div style="grid-row:1; aspect-ratio:1; border-radius:50%; background:#0E8C7F; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; box-shadow:inset 0 4px 0 rgba(0,0,0,.15); outline:{{ p.ring }}">{{ p.n }}</div>
+      </sc-for>
+      <div style="grid-row:1 / 3; grid-column:8; background:#FFE0EC; border-radius:999px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; font-size:22px; color:#C93670">{{ store.me }}</div>
+      <sc-for list="{{ bottom }}" as="p" hint-placeholder-count="6">
+        <button onClick="{{ p.onClick }}" style="grid-row:2; aspect-ratio:1; border:0; border-radius:50%; cursor:{{ p.cursor }}; background:{{ p.bg }}; color:{{ p.color }}; font-family:inherit; font-weight:700; font-size:18px; box-shadow:inset 0 -4px 0 rgba(0,0,0,.15); outline:{{ p.ring }}">{{ p.n }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex; justify-content:space-between; gap:10px">
+      <span style="border-radius:999px; padding:6px 14px; background:#FFE0EC; color:#C93670; font-weight:600; font-size:14px">{{ meName }} · {{ score.me }}</span>
+      <span style="border-radius:999px; padding:6px 14px; background:#FFE6D2; color:#B5560F; font-weight:600; font-size:14px">{{ cpuName }} · {{ score.cpu }}</span>
+    </div>
+    <div style="text-align:center; font-size:13px; color:#6B70A0">{{ rule }}</div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="font-size:14px; color:#6B70A0">{{ res.sub }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:520}}">
+const T = { es:{ rule:'Tus hoyos son los de abajo · Tu granero está a la derecha', again:'¡Caíste en tu granero! Jugá otra vez', cap:'¡Capturaste {a} semillas!' },
+            he:{ rule:'הגומות שלכם למטה · המחסן שלכם מימין', again:'נחתם במחסן! עוד תור', cap:'לכדתם {a} זרעים!' } };
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const resOf = (L, r, sub) => r ? { title: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, pts: r === 'me' ? '+30' : r === 'draw' ? '+10' : '+0', color: r === 'me' ? '#F2508E' : r === 'draw' ? '#4B5BE8' : '#FF8A2A', sub: sub || '' } : {};
+const stOf = (L, r, turn, t) => r ? { text: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, bg:'#1F2357', color:'#fff' } : turn === 'me' ? { text: t || L.yourTurn, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' };
+const sow = (b, i, who) => { b = b.slice(); let n = b[i], k = i; b[i] = 0; const skip = who === 'me' ? 13 : 6;
+  while (n) { k = (k + 1) % 14; if (k === skip) continue; b[k]++; n--; }
+  let cap = 0; const own = who === 'me' ? k >= 0 && k <= 5 : k >= 7 && k <= 12;
+  if (own && b[k] === 1 && b[12 - k] > 0) { cap = b[12 - k] + 1; b[who === 'me' ? 6 : 13] += cap; b[k] = 0; b[12 - k] = 0; }
+  return { b, extra: k === (who === 'me' ? 6 : 13), cap }; };
+const ended = b => b.slice(0, 6).every(v => !v) || b.slice(7, 13).every(v => !v);
+const sweep = b => { b = b.slice(); for (let i = 0; i < 6; i++) { b[6] += b[i]; b[i] = 0; } for (let i = 7; i < 13; i++) { b[13] += b[i]; b[i] = 0; } return b; };
+class Component extends DCLogic {
+  init() { return { b:[4,4,4,4,4,4,0,4,4,4,4,4,4,0], turn:'me', result:null, msg:'', last:-1 }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  move(i, who) {
+    const r = sow(this.state.b, i, who); let b = r.b, result = null;
+    if (ended(b)) { b = sweep(b); result = b[6] > b[13] ? 'me' : b[13] > b[6] ? 'friend' : 'draw'; }
+    const turn = r.extra ? who : who === 'me' ? 'friend' : 'me'; const t = T[this.props.lang === 'he' ? 'he' : 'es'];
+    this.setState({ b, turn, result, last:i, msg: who === 'me' ? (r.cap ? fmt(t.cap, { a:r.cap }) : r.extra ? t.again : '') : '' });
+    if (result) { this.props.onFinish && this.props.onFinish(result); return; }
+    if (turn === 'friend') this.tm = setTimeout(() => this.ai(), this.props.delay ?? 700);
+  }
+  click(i) { const s = this.state; if (s.turn !== 'me' || s.result || !s.b[i]) return; this.move(i, 'me'); }
+  ai() { const b = this.state.b; let best = -1, bv = -1e9;
+    for (let i = 7; i < 13; i++) { if (!b[i]) continue; const r = sow(b, i, 'friend'); const v = r.b[13] - b[13] + (r.extra ? 4 : 0) + Math.random() * .5; if (v > bv) { bv = v; best = i; } }
+    this.move(best, 'friend'); }
+  renderVals() {
+    const L = this.props.labels || {}, s = this.state, t = T[this.props.lang === 'he' ? 'he' : 'es'], b = s.b;
+    const can = i => s.turn === 'me' && !s.result && b[i] > 0;
+    return { labels:L, done:!!s.result, rule:t.rule, meName:this.props.meName || '', cpuName:this.props.friendName || '', store:{ me:b[6], cpu:b[13] }, score:{ me:b[6], cpu:b[13] },
+      top: [12,11,10,9,8,7].map(i => ({ n:b[i], ring: s.last === i ? '3px solid #FFC93C' : 'none' })),
+      bottom: [0,1,2,3,4,5].map(i => ({ n:b[i], bg: can(i) ? '#fff' : '#0E8C7F', color: can(i) ? '#0E8C7F' : '#fff', cursor: can(i) ? 'pointer' : 'default', ring: s.last === i ? '3px solid #FFC93C' : 'none', onClick:() => this.click(i) })),
+      status: stOf(L, s.result, s.turn, s.msg || null), res: resOf(L, s.result, b[6] + ' – ' + b[13]),
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack() };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="display:flex; gap:8px; align-items:center">
+      <div style="flex:1; border-radius:999px; padding:10px 14px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+      <span style="border-radius:999px; padding:8px 12px; background:#FFE0EC; color:#C93670; font-weight:700; font-size:14px">{{ count.me }}</span>
+      <span style="border-radius:999px; padding:8px 12px; background:#FFE6D2; color:#B5560F; font-weight:700; font-size:14px">{{ count.friend }}</span>
+    </div>
+    <div dir="ltr" style="display:grid; grid-template-columns:repeat(8,1fr); border-radius:18px; overflow:hidden; border:4px solid #3343C9">
+      <sc-for list="{{ cells }}" as="c" hint-placeholder-count="64">
+        <button onClick="{{ c.onClick }}" style="aspect-ratio:1; border:0; padding:0; cursor:pointer; position:relative; display:flex; align-items:center; justify-content:center; background:{{ c.bg }}">
+          <sc-if value="{{ c.piece }}" hint-placeholder-val="{{ false }}">
+            <span style="width:76%; height:76%; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:700; background:{{ c.pc }}; border:3px solid #fff; box-shadow:0 3px 0 {{ c.shade }}, 0 0 0 3px {{ c.ring }}">{{ c.king }}</span>
+          </sc-if>
+          <sc-if value="{{ c.target }}" hint-placeholder-val="{{ false }}">
+            <span style="width:30%; height:30%; border-radius:50%; background:#FFC93C"></span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+    <div style="text-align:center; font-size:12px; color:#6B70A0">{{ t.rule }}</div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:560}}">
+const T = { es:{ rule:'Comer es obligatorio · Si llegás al fondo, coronás', more:'¡Seguí comiendo!' }, he:{ rule:'חובה לאכול · בהגעה לקצה מקבלים מלך', more:'המשיכו לאכול!' } };
+const start = () => { const b = Array(64).fill(null); for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if ((r + c) % 2 === 1) { if (r < 3) b[r * 8 + c] = { p:'friend', k:false }; if (r > 4) b[r * 8 + c] = { p:'me', k:false }; } return b; };
+const dirs = pc => pc.k ? [[-1,-1],[-1,1],[1,-1],[1,1]] : pc.p === 'me' ? [[-1,-1],[-1,1]] : [[1,-1],[1,1]];
+const inB = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+const from = (b, i) => { const pc = b[i]; const r = Math.floor(i / 8), c = i % 8; const caps = [], steps = [];
+  for (const [dr, dc] of dirs(pc)) { const r1 = r + dr, c1 = c + dc; if (!inB(r1, c1)) continue; const j = r1 * 8 + c1;
+    if (!b[j]) steps.push({ from:i, to:j }); else if (b[j].p !== pc.p) { const r2 = r1 + dr, c2 = c1 + dc; if (inB(r2, c2) && !b[r2 * 8 + c2]) caps.push({ from:i, to:r2 * 8 + c2, cap:j }); } }
+  return { caps, steps }; };
+const all = (b, p, chain) => { if (chain != null) return from(b, chain).caps; let caps = [], steps = [];
+  b.forEach((pc, i) => { if (pc && pc.p === p) { const m = from(b, i); caps = caps.concat(m.caps); steps = steps.concat(m.steps); } });
+  return caps.length ? caps : steps; };
+const apply = (b, m) => { const n = b.slice(); const pc = { ...n[m.from] }; n[m.from] = null; if (m.cap != null) n[m.cap] = null;
+  const r = Math.floor(m.to / 8); let promoted = false; if (!pc.k && ((pc.p === 'me' && r === 0) || (pc.p === 'friend' && r === 7))) { pc.k = true; promoted = true; }
+  n[m.to] = pc; return { b:n, promoted }; };
+
+class Component extends DCLogic {
+  init() { return { b:start(), turn:'me', sel:null, chain:null, result:null }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  get d() { return this.props.delay ?? 700; }
+  finish(w) { if (this.state.result) return; this.setState({ result:w }); this.props.onFinish && this.props.onFinish(w); }
+  after(b, m, promoted, p) {
+    const cont = m.cap != null && !promoted && from(b, m.to).caps.length;
+    if (cont) return { b, chain:m.to, turn:p };
+    const other = p === 'me' ? 'friend' : 'me';
+    return { b, chain:null, turn:other, end: all(b, other, null).length ? null : p };
+  }
+  click(i) {
+    const s = this.state; if (s.turn !== 'me' || s.result) return;
+    const moves = all(s.b, 'me', s.chain);
+    if (s.sel != null) { const m = moves.find(x => x.from === s.sel && x.to === i);
+      if (m) { const { b, promoted } = apply(s.b, m); const nx = this.after(b, m, promoted, 'me');
+        this.setState({ b:nx.b, chain:nx.chain, turn:nx.turn, sel: nx.chain }); if (nx.end) return this.finish(nx.end);
+        if (nx.turn === 'friend') this.tm = setTimeout(() => this.ai(), this.d); return; } }
+    if (s.chain == null && moves.some(x => x.from === i)) this.setState({ sel:i });
+  }
+  ai() {
+    const s = this.state; const moves = all(s.b, 'friend', s.chain); if (!moves.length) return this.finish('me');
+    const sc = m => { const { b, promoted } = apply(s.b, m); let v = Math.random();
+      if (m.cap != null) v += 5; if (promoted) v += 3;
+      if (all(b, 'me', null).some(x => x.cap === m.to)) v -= 3; return v; };
+    const m = moves.map(m => [sc(m), m]).sort((a, z) => z[0] - a[0])[0][1];
+    const { b, promoted } = apply(s.b, m); const nx = this.after(b, m, promoted, 'friend');
+    this.setState({ b:nx.b, chain:nx.chain, turn:nx.turn, sel:null }); if (nx.end) return this.finish(nx.end);
+    if (nx.turn === 'friend') this.tm = setTimeout(() => this.ai(), this.d * .8);
+  }
+  renderVals() {
+    const L = this.props.labels || {}; const t = T[this.props.lang === 'he' ? 'he' : 'es']; const s = this.state;
+    const moves = s.turn === 'me' ? all(s.b, 'me', s.chain) : []; const movable = new Set(moves.map(m => m.from));
+    const targets = new Set(moves.filter(m => m.from === s.sel).map(m => m.to));
+    return {
+      t, labels:L, done:!!s.result,
+      count:{ me:s.b.filter(p => p && p.p === 'me').length, friend:s.b.filter(p => p && p.p === 'friend').length },
+      status: s.result ? { text: s.result === 'me' ? L.win : L.lose, bg:'#1F2357', color:'#fff' }
+        : s.turn === 'me' ? { text: s.chain != null ? t.more : L.yourTurn, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' },
+      cells: s.b.map((pc, i) => { const dark = (Math.floor(i / 8) + i % 8) % 2 === 1;
+        return { onClick:() => this.click(i), bg: dark ? '#7B8BF0' : '#EEF0FF', piece:!!pc, target:targets.has(i),
+          pc: pc && pc.p === 'me' ? '#F2508E' : '#FF8A2A', shade: pc && pc.p === 'me' ? '#C93670' : '#D16A14', king: pc && pc.k ? '★' : '',
+          ring: i === s.sel ? '#FFC93C' : (movable.has(i) && s.sel == null ? 'rgba(255,201,60,.6)' : 'transparent') }; }),
+      res: s.result ? { title: s.result === 'me' ? L.win : L.lose, pts: s.result === 'me' ? '+30' : '+0', color: s.result === 'me' ? '#F2508E' : '#FF8A2A' } : {},
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack()
+    };
+  }
+}
+</script>
+</body>
+</html>

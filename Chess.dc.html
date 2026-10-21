@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div dir="ltr" style="display:grid; grid-template-columns:repeat(8,1fr); border-radius:18px; overflow:hidden; border:4px solid #3343C9">
+      <sc-for list="{{ cells }}" as="c" hint-placeholder-count="64">
+        <button onClick="{{ c.onClick }}" style="aspect-ratio:1; border:0; padding:0; cursor:pointer; position:relative; display:flex; align-items:center; justify-content:center; font-size:32px; line-height:1; font-family:'Segoe UI Symbol','DejaVu Sans',system-ui,sans-serif; background:{{ c.bg }}; color:{{ c.color }}; text-shadow:{{ c.shadow }}; box-shadow:{{ c.ring }}">
+          {{ c.g }}
+          <sc-if value="{{ c.target }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute; width:28%; height:28%; border-radius:50%; background:rgba(255,201,60,.95)"></span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:13px; color:#6B70A0">
+      <span>{{ capMe }}</span><span>{{ capFriend }}</span>
+    </div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="font-size:14px; color:#6B70A0">{{ res.sub }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:560}}">
+const T = { es:{ check:'¡Jaque!', mate:'Jaque mate', stale:'Ahogado', thinking:'{n} está pensando…' }, he:{ check:'שח!', mate:'שח מט', stale:'פט', thinking:'{n} חושב/ת…' } };
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const GL = { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' };
+const VAL = { P:1, N:3, B:3.2, R:5, Q:9, K:0 };
+const start = () => { const b = Array(64).fill(null); const back = 'RNBQKBNR';
+  for (let c = 0; c < 8; c++) { b[c] = 'b' + back[c]; b[8 + c] = 'bP'; b[48 + c] = 'wP'; b[56 + c] = 'w' + back[c]; } return b; };
+const inB = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+const KN = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]], KG = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const SL = { B:[[-1,-1],[-1,1],[1,-1],[1,1]], R:[[-1,0],[1,0],[0,-1],[0,1]], Q:[...KG] };
+function pseudo(b, col, attacksOnly) {
+  const out = [];
+  for (let i = 0; i < 64; i++) { const p = b[i]; if (!p || p[0] !== col) continue; const t = p[1], r = i >> 3, c = i & 7;
+    const push = (rr, cc) => { if (!inB(rr, cc)) return false; const j = rr * 8 + cc; const q = b[j]; if (q && q[0] === col) return false; out.push({ from:i, to:j }); return !q; };
+    if (t === 'P') { const d = col === 'w' ? -1 : 1;
+      for (const dc of [-1, 1]) { const rr = r + d, cc = c + dc; if (inB(rr, cc)) { const q = b[rr * 8 + cc]; if (attacksOnly || (q && q[0] !== col)) out.push({ from:i, to:rr * 8 + cc }); } }
+      if (!attacksOnly && inB(r + d, c) && !b[(r + d) * 8 + c]) { out.push({ from:i, to:(r + d) * 8 + c });
+        if ((col === 'w' ? r === 6 : r === 1) && !b[(r + 2 * d) * 8 + c]) out.push({ from:i, to:(r + 2 * d) * 8 + c }); } }
+    else if (t === 'N') KN.forEach(([dr, dc]) => push(r + dr, c + dc));
+    else if (t === 'K') KG.forEach(([dr, dc]) => push(r + dr, c + dc));
+    else SL[t].forEach(([dr, dc]) => { let k = 1; while (push(r + dr * k, c + dc * k)) k++; });
+  }
+  return out;
+}
+const apply = (b, m) => { const n = b.slice(); let p = n[m.from]; n[m.from] = null; if (p[1] === 'P' && (m.to < 8 || m.to >= 56)) p = p[0] + 'Q'; n[m.to] = p; return n; };
+const inCheck = (b, col) => { const k = b.indexOf(col + 'K'); const opp = col === 'w' ? 'b' : 'w'; return pseudo(b, opp, true).some(m => m.to === k); };
+const legal = (b, col) => pseudo(b, col, false).filter(m => !inCheck(apply(b, m), col));
+const evalB = b => { let s = 0; b.forEach((p, i) => { if (!p) return; const v = VAL[p[1]] + ((p[1] === 'N' || p[1] === 'P') && [27,28,35,36].includes(i) ? .3 : 0); s += p[0] === 'b' ? v : -v; }); return s; };
+
+class Component extends DCLogic {
+  init() { return { b:start(), turn:'w', sel:null, last:null, plies:0, result:null, why:'' }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  finish(w, why) { if (this.state.result) return; this.setState({ result:w, why }); this.props.onFinish && this.props.onFinish(w); }
+  endCheck(b, next, plies) {
+    const t = T[this.props.lang === 'he' ? 'he' : 'es'];
+    if (!legal(b, next).length) { if (inCheck(b, next)) this.finish(next === 'b' ? 'me' : 'friend', t.mate); else this.finish('draw', t.stale); return true; }
+    if (plies >= 200 || b.filter(Boolean).length === 2) { this.finish('draw', ''); return true; }
+    return false;
+  }
+  click(i) {
+    const s = this.state; if (s.turn !== 'w' || s.result) return;
+    if (s.sel != null) { const m = legal(s.b, 'w').find(x => x.from === s.sel && x.to === i);
+      if (m) { const b = apply(s.b, m); this.setState({ b, sel:null, last:m, turn:'b', plies:s.plies + 1 });
+        if (!this.endCheck(b, 'b', s.plies + 1)) this.tm = setTimeout(() => this.ai(), Math.max(400, this.props.delay ?? 700)); return; } }
+    if (s.b[i] && s.b[i][0] === 'w') this.setState({ sel:i }); else this.setState({ sel:null });
+  }
+  ai() {
+    const s = this.state; const moves = legal(s.b, 'b'); let best = null, bv = -1e9;
+    for (const m of moves) { const b1 = apply(s.b, m); const rep = legal(b1, 'w'); let v;
+      if (!rep.length) v = inCheck(b1, 'w') ? 1000 : 0;
+      else { v = 1e9; for (const r of rep) { const e = evalB(apply(b1, r)); if (e < v) v = e; } }
+      v += Math.random() * .25; if (v > bv) { bv = v; best = m; } }
+    const b = apply(s.b, best); this.setState({ b, last:best, turn:'w', plies:s.plies + 1 });
+    this.endCheck(b, 'w', s.plies + 1);
+  }
+  renderVals() {
+    const L = this.props.labels || {}; const t = T[this.props.lang === 'he' ? 'he' : 'es']; const s = this.state; const n = this.props.friendName || '';
+    const moves = s.turn === 'w' && !s.result ? legal(s.b, 'w') : []; const targets = new Set(moves.filter(m => m.from === s.sel).map(m => m.to));
+    const check = !s.result && inCheck(s.b, s.turn);
+    const count = col => { const init = { P:8, N:2, B:2, R:2, Q:1 }; const have = {}; s.b.forEach(p => { if (p && p[0] === col) have[p[1]] = (have[p[1]] || 0) + 1; });
+      return Object.keys(init).map(k => GL[k].repeat(Math.max(0, init[k] - (have[k] || 0)))).join(''); };
+    return {
+      labels:L, done:!!s.result, capMe: count('b'), capFriend: count('w'),
+      status: s.result ? { text:(s.result === 'me' ? L.win : s.result === 'draw' ? L.draw : L.lose) + (s.why ? ' · ' + s.why : ''), bg:'#1F2357', color:'#fff' }
+        : s.turn === 'w' ? { text: check ? t.check : L.yourTurn, bg: check ? '#F2508E' : '#FFC93C', color: check ? '#fff' : '#1F2357' } : { text: fmt(t.thinking, { n }), bg:'#FFE6D2', color:'#B5560F' },
+      cells: s.b.map((p, i) => { const dark = ((i >> 3) + (i & 7)) % 2 === 1; const lastSq = s.last && (s.last.from === i || s.last.to === i);
+        return { onClick:() => this.click(i), g: p ? GL[p[1]] + '\uFE0E' : '', target:targets.has(i),
+          bg: i === s.sel ? '#FFC93C' : lastSq ? (dark ? '#B7A6F5' : '#DCD3FF') : dark ? '#9AA6F5' : '#EEF0FF',
+          color: p && p[0] === 'w' ? '#F2508E' : '#FF8A2A', shadow: p ? '0 2px 0 rgba(31,35,87,.35), 0 0 2px #fff' : 'none',
+          ring: check && p === s.turn + 'K' ? 'inset 0 0 0 4px #F2508E' : 'none' }; }),
+      res: s.result ? { title: s.result === 'me' ? L.win : s.result === 'draw' ? L.draw : L.lose, pts: s.result === 'me' ? '+30' : s.result === 'draw' ? '+10' : '+0', color: s.result === 'me' ? '#F2508E' : s.result === 'draw' ? '#4B5BE8' : '#FF8A2A', sub:s.why } : {},
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack()
+    };
+  }
+}
+</script>
+</body>
+</html>
