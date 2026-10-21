@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:14px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div dir="ltr" style="display:flex; justify-content:center; gap:3px">
+      <sc-for list="{{ backs }}" as="b" hint-placeholder-count="7">
+        <span style="width:26px; height:38px; border-radius:7px; background:#FF8A2A; border:2px solid #fff; box-shadow:0 2px 0 #D16A14"></span>
+      </sc-for>
+    </div>
+    <div dir="ltr" style="display:flex; justify-content:center; gap:16px; align-items:center">
+      <button onClick="{{ drawStock }}" style="width:64px; height:92px; border-radius:12px; cursor:pointer; background:#4B5BE8; border:3px solid {{ stockRing }}; color:#fff; font-family:inherit; font-weight:700; font-size:14px; box-shadow:0 4px 0 #3343C9">{{ stockN }}</button>
+      <button onClick="{{ drawDiscard }}" style="width:64px; height:92px; border-radius:12px; cursor:pointer; background:#fff; border:3px solid {{ discRing }}; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:inherit; color:{{ top.color }}; box-shadow:0 4px 0 #DDE1FF">
+        <span style="font-size:22px; font-weight:700; line-height:1">{{ top.r }}</span><span style="font-size:26px; line-height:1">{{ top.s }}</span>
+      </button>
+    </div>
+    <div style="text-align:center; font-size:13px; color:#6B70A0; min-height:18px">{{ msg }}</div>
+    <div dir="ltr" style="display:flex; justify-content:center; gap:3px; flex-wrap:nowrap">
+      <sc-for list="{{ hand }}" as="c" hint-placeholder-count="7">
+        <button onClick="{{ c.onClick }}" style="width:34px; height:56px; flex:none; border-radius:10px; cursor:pointer; padding:0; background:#fff; border:3px solid {{ c.border }}; transform:translateY({{ c.lift }}); display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:inherit; color:{{ c.color }}; box-shadow:0 3px 0 #DDE1FF">
+          <span style="font-size:17px; font-weight:700; line-height:1">{{ c.r }}</span><span style="font-size:20px; line-height:1">{{ c.s }}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+      <button onClick="{{ discard }}" style="border:0; cursor:pointer; border-radius:999px; padding:12px; background:#4B5BE8; color:#fff; font-family:inherit; font-weight:700; font-size:15px; opacity:{{ discOpacity }}">{{ t.discard }}</button>
+      <button onClick="{{ cut }}" style="border:0; cursor:pointer; border-radius:999px; padding:12px; background:#F2508E; color:#fff; font-family:inherit; font-weight:700; font-size:15px; box-shadow:0 3px 0 #C93670; opacity:{{ cutOpacity }}">{{ t.cut }}</button>
+    </div>
+    <div style="text-align:center; font-size:12px; color:#6B70A0">{{ t.rule }}</div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:600}}">
+const SU = ['♠','♥','♦','♣'], RK = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const T = { es:{ draw:'Robá del mazo o del pozo', disc:'Elegí una carta para descartar', discard:'Descartar', cut:'¡Rummy!', rule:'Ganás con un juego de 3 y otro de 4 (mismo número o escalera del mismo palo)', took:'{n} robó {w} y descartó {c}', stock:'del mazo', pile:'del pozo', canCut:'¡Podés cortar!' },
+            he:{ draw:'קחו קלף מהחפיסה או מהערימה', disc:'בחרו קלף לזרוק', discard:'לזרוק', cut:'רמי!', rule:'מנצחים עם סדרה של 3 וסדרה של 4 (אותו מספר או רצף באותה צורה)', took:'{n} לקח/ה {w} וזרק/ה {c}', stock:'מהחפיסה', pile:'מהערימה', canCut:'אפשר לסגור!' } };
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const isMeld = cs => { if (cs.every(c => c.r === cs[0].r)) return true; if (!cs.every(c => c.s === cs[0].s)) return false; const r = cs.map(c => c.r).sort((a, b) => a - b); return r.every((v, i) => !i || v === r[i - 1] + 1); };
+const win7 = h => { for (let a = 0; a < 7; a++) for (let b = a + 1; b < 7; b++) for (let c = b + 1; c < 7; c++) { const three = [h[a], h[b], h[c]], four = h.filter((_, i) => i !== a && i !== b && i !== c); if (isMeld(three) && isMeld(four)) return true; } return false; };
+const findCut = h => h.findIndex((_, i) => win7(h.filter((_, j) => j !== i)));
+const useful = (c, h) => h.filter(x => x !== c && (x.r === c.r || (x.s === c.s && Math.abs(x.r - c.r) <= 2))).length;
+const sortH = h => h.slice().sort((a, b) => a.s - b.s || a.r - b.r);
+const name = c => RK[c.r] + SU[c.s];
+
+class Component extends DCLogic {
+  init() { const deck = shuffle(SU.flatMap((_, s) => Array.from({ length:13 }, (_, r) => ({ r:r + 1, s })))); return { me:sortH(deck.slice(0, 7)), friend:deck.slice(7, 14), pile:[deck[14]], stock:deck.slice(15), turn:'me', phase:'draw', sel:null, msg:'', result:null }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  get d() { return this.props.delay ?? 700; }
+  t() { return T[this.props.lang === 'he' ? 'he' : 'es']; }
+  finish(w) { if (this.state.result) return; this.setState({ result:w, phase:'end' }); this.props.onFinish && this.props.onFinish(w); }
+  refill(s) { if (s.stock.length) return s; const top = s.pile[s.pile.length - 1]; return { ...s, stock:shuffle(s.pile.slice(0, -1)), pile:[top] }; }
+  take(fromPile) { let s = this.refill(this.state); if (s.turn !== 'me' || s.phase !== 'draw' || s.result) return;
+    const card = fromPile ? s.pile[s.pile.length - 1] : s.stock[0];
+    this.setState({ me:sortH([...s.me, card]), pile: fromPile ? s.pile.slice(0, -1) : s.pile, stock: fromPile ? s.stock : s.stock.slice(1), phase:'discard', sel:null, msg:'' }); }
+  discard = () => { const s = this.state; if (s.phase !== 'discard' || s.sel == null) return;
+    const c = s.me[s.sel]; this.setState({ me:s.me.filter((_, i) => i !== s.sel), pile:[...s.pile, c], sel:null, phase:'draw', turn:'friend' });
+    this.tm = setTimeout(() => this.ai(), this.d * 1.2); };
+  cut = () => { const s = this.state; if (s.phase !== 'discard') return; const i = findCut(s.me); if (i < 0) return;
+    this.setState({ me:s.me.filter((_, j) => j !== i), pile:[...s.pile, s.me[i]] }); this.finish('me'); };
+  ai() {
+    let s = this.refill(this.state); const t = this.t(); const top = s.pile[s.pile.length - 1];
+    const withTop = [...s.friend, top]; const takePile = findCut(withTop) >= 0 || useful(top, withTop) >= 2;
+    const h = takePile ? withTop : [...s.friend, s.stock[0]]; const pile = takePile ? s.pile.slice(0, -1) : s.pile; const stock = takePile ? s.stock : s.stock.slice(1);
+    const ci = findCut(h);
+    if (ci >= 0) { this.setState({ friend:h.filter((_, i) => i !== ci), pile:[...pile, h[ci]], stock }); return this.finish('friend'); }
+    const cand = h.map((c, i) => [useful(c, h) + Math.random() * .5 + (takePile && c === top ? 9 : 0), i]).sort((a, b) => a[0] - b[0]);
+    const di = cand[0][1]; const dc = h[di];
+    this.setState({ friend:h.filter((_, i) => i !== di), pile:[...pile, dc], stock, turn:'me', phase:'draw',
+      msg:fmt(t.took, { n:this.props.friendName || '', w: takePile ? t.pile : t.stock, c:name(dc) }) });
+  }
+  renderVals() {
+    const L = this.props.labels || {}; const t = this.t(); const s = this.state; const myTurn = s.turn === 'me' && !s.result;
+    const top = s.pile[s.pile.length - 1]; const canCut = myTurn && s.phase === 'discard' && findCut(s.me) >= 0;
+    const red = c => c.s === 1 || c.s === 2 ? '#E5484D' : '#1F2357';
+    return {
+      t, labels:L, done:!!s.result, msg: canCut ? t.canCut : s.msg,
+      backs: s.friend.map(() => ({})), stockN: s.stock.length,
+      stockRing: myTurn && s.phase === 'draw' ? '#FFC93C' : '#4B5BE8', discRing: myTurn && s.phase === 'draw' && top ? '#FFC93C' : '#DDE1FF',
+      top: top ? { r:RK[top.r], s:SU[top.s], color:red(top) } : { r:'', s:'', color:'#1F2357' },
+      drawStock:() => this.take(false), drawDiscard:() => top && this.take(true),
+      hand: s.me.map((c, i) => ({ r:RK[c.r], s:SU[c.s], color:red(c), border: s.sel === i ? '#F2508E' : '#DDE1FF', lift: s.sel === i ? '-10px' : '0px',
+        onClick:() => myTurn && s.phase === 'discard' && this.setState({ sel: s.sel === i ? null : i }) })),
+      discard:this.discard, cut:this.cut, discOpacity: myTurn && s.phase === 'discard' && s.sel != null ? 1 : .4, cutOpacity: canCut ? 1 : .35,
+      status: s.result ? { text: s.result === 'me' ? L.win : L.lose, bg:'#1F2357', color:'#fff' }
+        : myTurn ? { text: s.phase === 'draw' ? t.draw : t.disc, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' },
+      res: s.result ? { title: s.result === 'me' ? L.win : L.lose, pts: s.result === 'me' ? '+30' : '+0', color: s.result === 'me' ? '#F2508E' : '#FF8A2A' } : {},
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack()
+    };
+  }
+}
+</script>
+</body>
+</html>

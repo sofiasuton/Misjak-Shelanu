@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div style="display:flex; justify-content:space-between; gap:10px">
+      <span style="border-radius:999px; padding:6px 14px; background:#FFE0EC; color:#C93670; font-weight:600; font-size:14px">{{ meName }} · {{ score.me }}</span>
+      <span style="border-radius:999px; padding:6px 14px; background:#FFE6D2; color:#B5560F; font-weight:600; font-size:14px">{{ cpuName }} · {{ score.cpu }}</span>
+    </div>
+    <div dir="ltr" style="display:grid; grid-template-columns:{{ cols }}; grid-template-rows:{{ cols }}; aspect-ratio:1; padding:6px">
+      <sc-for list="{{ cells }}" as="c" hint-placeholder-count="81">
+        <div onClick="{{ c.onClick }}" style="background:{{ c.bg }}; border-radius:{{ c.r }}; cursor:{{ c.cursor }}; margin:{{ c.m }}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px" style-hover="filter:brightness(0.93)">{{ c.t }}</div>
+      </sc-for>
+    </div>
+    <div style="text-align:center; font-size:13px; color:#6B70A0">{{ rule }}</div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="font-size:14px; color:#6B70A0">{{ res.sub }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:640}}">
+const N = 4, S = 2 * N + 1;
+const T = { es:{ rule:'Cerrá un cuadrado y jugás de nuevo', more:'¡Cerraste! Jugá otra vez' }, he:{ rule:'סגרתם ריבוע? משחקים שוב', more:'סגרתם! עוד תור' } };
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const resOf = (L, r, sub) => r ? { title: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, pts: r === 'me' ? '+30' : r === 'draw' ? '+10' : '+0', color: r === 'me' ? '#F2508E' : r === 'draw' ? '#4B5BE8' : '#FF8A2A', sub: sub || '' } : {};
+const stOf = (L, r, turn, t) => r ? { text: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, bg:'#1F2357', color:'#fff' } : turn === 'me' ? { text: t || L.yourTurn, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' };
+const isLine = (r, c) => (r + c) % 2 === 1;
+const boxSides = (L, r, c) => [L[(r - 1) * S + c], L[(r + 1) * S + c], L[r * S + c - 1], L[r * S + c + 1]].filter(Boolean).length;
+const boxesOf = (r, c) => r % 2 === 0 ? [[r - 1, c], [r + 1, c]].filter(([a]) => a > 0 && a < S) : [[r, c - 1], [r, c + 1]].filter(([, b]) => b > 0 && b < S);
+class Component extends DCLogic {
+  init() { return { L:{}, B:{}, turn:'me', result:null, more:false }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  apply(i, who) {
+    const s = this.state; const L = { ...s.L, [i]:who }, B = { ...s.B }; const r = Math.floor(i / S), c = i % S; let got = 0;
+    boxesOf(r, c).forEach(([a, b]) => { if (!B[a * S + b] && boxSides(L, a, b) === 4) { B[a * S + b] = who; got++; } });
+    const total = N * N, mine = Object.values(B).filter(v => v === 'me').length, cpu = Object.values(B).filter(v => v === 'friend').length;
+    const result = mine + cpu === total ? (mine > cpu ? 'me' : cpu > mine ? 'friend' : 'draw') : null;
+    const turn = got ? who : who === 'me' ? 'friend' : 'me';
+    this.setState({ L, B, turn, result, more: got > 0 && who === 'me' });
+    if (result) { this.props.onFinish && this.props.onFinish(result); return; }
+    if (turn === 'friend') this.tm = setTimeout(() => this.ai(), (this.props.delay ?? 700) * .8);
+  }
+  click(i) { const s = this.state; if (s.turn !== 'me' || s.result || s.L[i]) return; this.apply(i, 'me'); }
+  ai() {
+    const { L } = this.state; const free = []; for (let i = 0; i < S * S; i++) { const r = Math.floor(i / S), c = i % S; if (isLine(r, c) && !L[i]) free.push(i); }
+    const gain = i => { const r = Math.floor(i / S), c = i % S, L2 = { ...L, [i]:1 }; return boxesOf(r, c).filter(([a, b]) => boxSides(L2, a, b) === 4).length; };
+    const risky = i => { const r = Math.floor(i / S), c = i % S, L2 = { ...L, [i]:1 }; return boxesOf(r, c).some(([a, b]) => boxSides(L2, a, b) === 3); };
+    const pickR = a => a[Math.floor(Math.random() * a.length)];
+    const g = free.filter(i => gain(i) > 0); const safe = free.filter(i => !risky(i));
+    this.apply(g.length ? pickR(g) : safe.length ? pickR(safe) : pickR(free), 'friend');
+  }
+  renderVals() {
+    const Lb = this.props.labels || {}, s = this.state, t = T[this.props.lang === 'he' ? 'he' : 'es'];
+    const cells = []; for (let i = 0; i < S * S; i++) { const r = Math.floor(i / S), c = i % S;
+      if (r % 2 === 0 && c % 2 === 0) cells.push({ bg:'#1F2357', r:'50%', cursor:'default', m:'0', t:'' });
+      else if (isLine(r, c)) { const o = s.L[i]; const h = r % 2 === 0; cells.push({ bg: o === 'me' ? '#F2508E' : o === 'friend' ? '#FF8A2A' : '#E8EBFF', r:'999px', cursor: o ? 'default' : 'pointer', m: h ? '3px 2px' : '2px 3px', t:'', onClick:() => this.click(i) }); }
+      else { const o = s.B[i]; cells.push({ bg: o === 'me' ? '#F2508E' : o === 'friend' ? '#FF8A2A' : 'transparent', r:'10px', cursor:'default', m:'4px', t: o ? (o === 'me' ? (this.props.meName || 'S')[0] : (this.props.friendName || 'C')[0]) : '' }); } }
+    const score = { me:Object.values(s.B).filter(v => v === 'me').length, cpu:Object.values(s.B).filter(v => v === 'friend').length };
+    return { labels:Lb, done:!!s.result, cells, cols: 'repeat(' + N + ', 14px 1fr) 14px', meName:this.props.meName || '', cpuName:this.props.friendName || '', score, rule:t.rule,
+      status: stOf(Lb, s.result, s.turn, s.more ? t.more : null), res: resOf(Lb, s.result, score.me + ' – ' + score.cpu),
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack() };
+  }
+}
+</script>
+</body>
+</html>

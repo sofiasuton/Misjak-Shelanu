@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes rpsShake{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-14px) rotate(-12deg)}75%{transform:translateY(6px) rotate(8deg)}}</style></helmet>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:10px 0">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px">
+        <div style="width:96px; height:96px; border-radius:50%; background:#FFE0EC; display:flex; align-items:center; justify-content:center; font-size:52px; animation:{{ anim }}">{{ myHand }}</div>
+        <div style="font-weight:600">{{ meName }} · {{ score.me }}</div>
+      </div>
+      <div style="width:40px; height:40px; border-radius:50%; background:#FFC93C; display:flex; align-items:center; justify-content:center; font-weight:700">vs</div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px">
+        <div style="width:96px; height:96px; border-radius:50%; background:#FFE6D2; display:flex; align-items:center; justify-content:center; font-size:52px; animation:{{ anim }}">{{ cpuHand }}</div>
+        <div style="font-weight:600">{{ cpuName }} · {{ score.cpu }}</div>
+      </div>
+    </div>
+    <div style="text-align:center; font-weight:600; color:#4B5BE8; min-height:20px">{{ roundText }}</div>
+    <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px">
+        <sc-for list="{{ opts }}" as="o" hint-placeholder-count="3">
+          <button onClick="{{ o.onClick }}" style="border:0; cursor:pointer; border-radius:24px; padding:12px 6px; background:#EEF0FF; display:flex; flex-direction:column; align-items:center; gap:4px; font-family:inherit; color:#1F2357" style-hover="background:#DDE1FF" style-active="transform:translateY(2px)"><span style="font-size:38px">{{ o.e }}</span><span style="font-size:13px; font-weight:600">{{ o.name }}</span></button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="text-align:center; font-size:13px; color:#6B70A0">{{ rule }}</div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="font-size:14px; color:#6B70A0">{{ res.sub }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:560}}">
+const H = ['✊','✋','✌️'];
+const T = { es:{ n:['Piedra','Papel','Tijera'], pick:'Elegí tu jugada', rule:'Gana quien llega a 3', won:'¡Punto para vos!', lost:'Punto para la compu', tie:'Empate, otra vez', shaking:'Piedra… papel… ¡tijera!' },
+            he:{ n:['אבן','נייר','מספריים'], pick:'בחרו מהלך', rule:'מנצח מי שמגיע ל־3', won:'נקודה לכם!', lost:'נקודה למחשב', tie:'תיקו, שוב', shaking:'אבן… נייר… ומספריים!' } };
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const resOf = (L, r, sub) => r ? { title: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, pts: r === 'me' ? '+30' : r === 'draw' ? '+10' : '+0', color: r === 'me' ? '#F2508E' : r === 'draw' ? '#4B5BE8' : '#FF8A2A', sub: sub || '' } : {};
+const stOf = (L, r, turn, t) => r ? { text: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, bg:'#1F2357', color:'#fff' } : turn === 'me' ? { text: t || L.yourTurn, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' };
+class Component extends DCLogic {
+  init() { return { me:null, cpu:null, score:{ me:0, cpu:0 }, last:null, busy:false, result:null, n:0 }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  play(i) {
+    const s = this.state; if (s.busy || s.result) return;
+    this.setState({ busy:true, me:null, cpu:null, last:null, n:s.n + 1 });
+    this.tm = setTimeout(() => {
+      const c = Math.floor(Math.random() * 3); const r = i === c ? 'tie' : (i - c + 3) % 3 === 1 ? 'won' : 'lost';
+      const score = { me:s.score.me + (r === 'won' ? 1 : 0), cpu:s.score.cpu + (r === 'lost' ? 1 : 0) };
+      const result = score.me === 3 ? 'me' : score.cpu === 3 ? 'friend' : null;
+      this.setState({ me:i, cpu:c, score, last:r, busy:false, result });
+      if (result) this.props.onFinish && this.props.onFinish(result);
+    }, 900);
+  }
+  renderVals() {
+    const L = this.props.labels || {}, s = this.state, t = T[this.props.lang === 'he' ? 'he' : 'es'];
+    return { labels:L, done:!!s.result, playing:!s.result, meName:this.props.meName || '', cpuName:this.props.friendName || '', score:s.score, rule:t.rule,
+      myHand: s.busy ? '✊' : s.me === null ? '❔' : H[s.me], cpuHand: s.busy ? '✊' : s.cpu === null ? '❔' : H[s.cpu],
+      anim: s.busy ? 'rpsShake .3s ease-in-out 3' : 'none',
+      roundText: s.busy ? t.shaking : s.last ? t[s.last] : '',
+      status: stOf(L, s.result, 'me', t.pick),
+      opts: H.map((e, i) => ({ e, name:t.n[i], onClick:() => this.play(i) })),
+      res: resOf(L, s.result, s.score.me + ' – ' + s.score.cpu),
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack() };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes c4drop{0%{transform:translateY(var(--fall))}70%{transform:translateY(0)}85%{transform:translateY(-8%)}100%{transform:translateY(0)}}</style></helmet>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div dir="ltr" style="background:#4B5BE8; border-radius:24px; padding:8px; display:grid; grid-template-columns:repeat(7,1fr); gap:5px">
+      <sc-for list="{{ cells }}" as="c" hint-placeholder-count="42">
+        <button onClick="{{ c.onClick }}" style="aspect-ratio:1; border:0; padding:0; border-radius:50%; cursor:pointer; background:{{ c.bg }}; box-shadow:{{ c.shadow }}; --fall:{{ c.fall }}; animation:{{ c.anim }}"></button>
+      </sc-for>
+    </div>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:520}}">
+const W = 7, Hh = 6;
+const drop = (b, c, m) => { for (let r = Hh - 1; r >= 0; r--) if (!b[r * W + c]) { const n = b.slice(); n[r * W + c] = m; return n; } return null; };
+const wins = (b, m) => { const D = [[0,1],[1,0],[1,1],[1,-1]];
+  for (let r = 0; r < Hh; r++) for (let c = 0; c < W; c++) { if (b[r * W + c] !== m) continue;
+    for (const [dr, dc] of D) { let k = 1; while (k < 4) { const rr = r + dr * k, cc = c + dc * k; if (rr < 0 || rr >= Hh || cc < 0 || cc >= W || b[rr * W + cc] !== m) break; k++; } if (k === 4) return true; } }
+  return false; };
+
+class Component extends DCLogic {
+  init() { return { b:Array(W * Hh).fill(null), turn:'me', result:null }; }
+  state = this.init();
+  componentWillUnmount() { clearTimeout(this.tm); }
+  finish(w) { if (this.state.result) return; this.setState({ result:w }); this.props.onFinish && this.props.onFinish(w); }
+  check(b) { if (wins(b, 'me')) return this.finish('me'), true; if (wins(b, 'friend')) return this.finish('friend'), true; if (b.every(Boolean)) return this.finish('draw'), true; return false; }
+  play(c) {
+    const { b, turn, result } = this.state; if (turn !== 'me' || result) return;
+    const n = drop(b, c, 'me'); if (!n) return; this.last = n.findIndex((v, i) => v !== b[i]);
+    this.setState({ b:n, turn:'friend' });
+    if (this.check(n)) return;
+    this.tm = setTimeout(() => this.ai(), this.props.delay ?? 700);
+  }
+  ai() {
+    const b = this.state.b; const cols = [...Array(W).keys()].filter(c => !b[c]);
+    let pick = cols.find(c => wins(drop(b, c, 'friend'), 'friend'));
+    if (pick === undefined) pick = cols.find(c => wins(drop(b, c, 'me'), 'me'));
+    if (pick === undefined) {
+      const safe = cols.filter(c => { const n = drop(b, c, 'friend'); return !cols.some(c2 => { const n2 = drop(n, c2, 'me'); return n2 && wins(n2, 'me'); }); });
+      const pool = safe.length ? safe : cols;
+      pool.sort((a, z) => Math.abs(a - 3) - Math.abs(z - 3) + (Math.random() - .5) * 2.2);
+      pick = pool[0];
+    }
+    const n = drop(b, pick, 'friend'); this.last = n.findIndex((v, i) => v !== b[i]);
+    this.setState({ b:n, turn:'me' }); this.check(n);
+  }
+  renderVals() {
+    const L = this.props.labels || {}; const { b, turn, result } = this.state;
+    return {
+      labels:L, done:!!result,
+      res: result ? { title: result === 'me' ? L.win : result === 'draw' ? L.draw : L.lose, pts: result === 'me' ? '+30' : result === 'draw' ? '+10' : '+0', color: result === 'me' ? '#F2508E' : result === 'draw' ? '#4B5BE8' : '#FF8A2A' } : {},
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack(),
+      status: result ? { text: result === 'me' ? L.win : result === 'draw' ? L.draw : L.lose, bg:'#1F2357', color:'#fff' } : turn === 'me' ? { text:L.yourTurn, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' },
+      cells: b.map((v, i) => ({ bg: v === 'me' ? '#F2508E' : v === 'friend' ? '#FF8A2A' : '#EEF0FF', shadow: v ? 'inset 0 -4px 0 rgba(0,0,0,.15)' : 'inset 0 3px 0 rgba(31,35,87,.12)', fall: '-' + (Math.floor(i / W) + 1) * 112 + '%', anim: i === this.last ? 'c4drop .5s cubic-bezier(.35,0,.6,1)' : 'none', onClick:() => this.play(i % W) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

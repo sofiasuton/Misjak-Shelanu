@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div style="display:flex; justify-content:center; gap:8px">
+      <sc-for list="{{ lives }}" as="l" hint-placeholder-count="6">
+        <div style="width:26px; height:26px; border-radius:50%; background:{{ l.bg }}; transform:scale({{ l.scale }}); transition:transform .3s, background .3s"></div>
+      </sc-for>
+    </div>
+    <div style="text-align:center; font-size:13px; font-weight:600; color:#6B70A0">{{ hint }}</div>
+    <div dir="{{ wdir }}" style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px">
+      <sc-for list="{{ slots }}" as="s" hint-placeholder-count="6">
+        <div style="width:36px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; background:{{ s.bg }}; color:{{ s.color }}">{{ s.ch }}</div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
+      <div dir="{{ wdir }}" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px">
+        <sc-for list="{{ keys }}" as="k" hint-placeholder-count="27">
+          <button onClick="{{ k.onClick }}" style="width:34px; height:42px; border:0; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:17px; background:{{ k.bg }}; color:{{ k.color }}">{{ k.k }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="font-size:14px; color:#6B70A0">{{ res.sub }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:640}}">
+const W = { es:[['GUITARRA','Música'],['ELEFANTE','Animales'],['CHOCOLATE','Comida'],['MARIPOSA','Animales'],['BIBLIOTECA','Lugares'],['ARGENTINA','Países'],['TELEVISOR','Objetos'],['MONTAÑA','Naturaleza'],['ALFAJOR','Comida'],['PARAGUAS','Objetos'],['DINOSAURIO','Animales'],['ASTRONAUTA','Profesiones'],['BICICLETA','Transporte'],['HELADERA','Objetos'],['CUMPLEAÑOS','Fiestas'],['EMPANADA','Comida'],['JIRAFA','Animales'],['PELÍCULA','Cine'],['ARCOÍRIS','Naturaleza'],['FUTBOLISTA','Deportes'],['VOLCÁN','Naturaleza'],['PINGÜINO','Animales'],['TERMO','Mate'],['COLECTIVO','Transporte']],
+  he:[['גיטרה','מוזיקה'],['פיל','חיות'],['שוקולד','אוכל'],['פרפר','חיות'],['ספרייה','מקומות'],['ארגנטינה','מדינות'],['טלוויזיה','חפצים'],['הר','טבע'],['מטרייה','חפצים'],['דינוזאור','חיות'],['אסטרונאוט','מקצועות'],['אופניים','תחבורה'],['מקרר','חפצים'],['יומולדת','חגים'],['פלאפל','אוכל'],['ג׳ירפה','חיות'],['סרט','קולנוע'],['קשת','טבע'],['כדורגלן','ספורט'],['הר געש','טבע'],['פינגווין','חיות'],['אוטובוס','תחבורה'],['חומוס','אוכל'],['ירושלים','ערים']] };
+const KEYS = { es:'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ', he:'אבגדהוזחטיכלמנסעפצקרשת' };
+const norm = c => ({ 'Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U','Ü':'U' })[c] || c;
+const FIN = { 'ך':'כ','ם':'מ','ן':'נ','ף':'פ','ץ':'צ' };
+const T = { es:{ hint:'Pista: {a}', guess:'Adiviná la palabra letra por letra', won:'¡La adivinaste!', lost:'Te quedaste sin globos', errs:'{a} errores', word:'La palabra era {w}' }, he:{ hint:'רמז: {a}', guess:'נחשו את המילה אות אחרי אות', won:'ניחשתם!', lost:'נגמרו הבלונים', errs:'{a} טעויות', word:'המילה הייתה {w}' } };
+const MAX = 6;
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const resOf = (L, r, sub) => r ? { title: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, pts: r === 'me' ? '+30' : r === 'draw' ? '+10' : '+0', color: r === 'me' ? '#F2508E' : r === 'draw' ? '#4B5BE8' : '#FF8A2A', sub: sub || '' } : {};
+const stOf = (L, r, turn, t) => r ? { text: r === 'me' ? L.win : r === 'draw' ? L.draw : L.lose, bg:'#1F2357', color:'#fff' } : turn === 'me' ? { text: t || L.yourTurn, bg:'#FFC93C', color:'#1F2357' } : { text:L.theirTurn, bg:'#FFE6D2', color:'#B5560F' };
+class Component extends DCLogic {
+  lg() { return this.props.lang === 'he' ? 'he' : 'es'; }
+  init() { const lg = this.lg(), list = W[lg], [w, h] = list[Math.floor(Math.random() * list.length)]; return { lg, w, h, used:[], result:null, cpuErr: 1 + Math.floor(Math.random() * 5) }; }
+  state = this.init();
+  key(k) {
+    const s = this.state; if (s.result || s.used.includes(k)) return;
+    const used = [...s.used, k]; this.setState({ used });
+    const letters = [...s.w].filter(c => c !== ' ' && c !== '׳'); const has = c => used.includes(norm(c)) || used.includes(FIN[c]) || used.includes(c);
+    const errs = used.filter(u => ![...s.w].some(c => norm(c) === u || FIN[c] === u || c === u)).length;
+    if (letters.every(has)) this.finish('me');
+    else if (errs >= MAX) this.finish('friend');
+  }
+  finish(w) { this.setState({ result:w }); this.props.onFinish && this.props.onFinish(w); }
+  renderVals() {
+    const L = this.props.labels || {}, s = this.state, t = T[s.lg];
+    if (s.lg !== this.lg() && !s.used.length) setTimeout(() => this.setState(this.init()));
+    const inW = u => [...s.w].some(c => norm(c) === u || FIN[c] === u || c === u);
+    const errs = s.used.filter(u => !inW(u)).length;
+    const shown = c => c === ' ' || c === '׳' || s.used.includes(norm(c)) || s.used.includes(FIN[c]) || s.used.includes(c) || !!s.result;
+    return { labels:L, done:!!s.result, playing:!s.result, wdir: s.lg === 'he' ? 'rtl' : 'ltr', hint: fmt(t.hint, { a:s.h }),
+      status: s.result ? { text: s.result === 'me' ? t.won : t.lost, bg:'#1F2357', color:'#fff' } : { text:t.guess, bg:'#FFC93C', color:'#1F2357' },
+      lives: Array.from({ length:MAX }, (_, i) => ({ bg: i < MAX - errs ? ['#F2508E','#FF8A2A','#FFC93C','#A8E03A','#2FB3E8','#7B4DE0'][i] : '#E2E5F0', scale: i < MAX - errs ? 1 : .55 })),
+      slots: [...s.w].map(c => c === ' ' ? { ch:'', bg:'transparent', color:'#1F2357' } : { ch: shown(c) ? c : '', bg: shown(c) ? (s.result && !s.used.some(u => norm(c) === u || FIN[c] === u || c === u) ? '#FFE0EC' : '#EEF0FF') : '#F5F6FB', color:'#1F2357' }),
+      keys: [...KEYS[s.lg]].map(k => { const u = s.used.includes(k), ok = u && inW(k); return { k, bg: !u ? '#EEF0FF' : ok ? '#A8E03A' : '#E2E5F0', color: u && !ok ? '#A3A7C7' : '#1F2357', onClick:() => this.key(k) }; }),
+      res: { ...resOf(L, s.result, fmt(t.word, { w:s.w }) + ' · ' + fmt(t.errs, { a:errs })), title: s.result === 'me' ? t.won : t.lost },
+      restart:() => this.setState(this.init()), back:() => this.props.onBack && this.props.onBack() };
+  }
+}
+</script>
+</body>
+</html>

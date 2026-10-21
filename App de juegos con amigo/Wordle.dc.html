@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:14px; font-family:'Fredoka', system-ui, sans-serif; color:#1F2357">
+  <div style="background:#fff; border-radius:34px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow:0 16px 0 rgba(31,35,87,.18)">
+    <div style="border-radius:999px; padding:10px 16px; font-weight:600; font-size:14px; text-align:center; background:{{ status.bg }}; color:{{ status.color }}">{{ status.text }}</div>
+    <div dir="{{ wdir }}" style="display:flex; flex-direction:column; gap:6px; align-items:center">
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+        <div style="display:grid; grid-template-columns:repeat(5,48px); gap:6px">
+          <sc-for list="{{ r.tiles }}" as="t" hint-placeholder-count="5">
+            <div style="height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; background:{{ t.bg }}; color:{{ t.color }}; border:3px solid {{ t.border }}">{{ t.ch }}</div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}">
+      <div dir="{{ wdir }}" style="display:flex; flex-direction:column; gap:6px">
+        <sc-for list="{{ kb }}" as="row" hint-placeholder-count="3">
+          <div style="display:flex; gap:4px; justify-content:center">
+            <sc-for list="{{ row.keys }}" as="k" hint-placeholder-count="10">
+              <button onClick="{{ k.onClick }}" style="flex:{{ k.flex }}; min-width:0; height:46px; border:0; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:600; font-size:{{ k.size }}; background:{{ k.bg }}; color:{{ k.color }}">{{ k.label }}</button>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ msg }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; font-weight:600; font-size:15px; color:#4B5BE8">{{ msg }}</div>
+    </sc-if>
+  </div>
+  <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff; border-radius:30px; padding:16px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; box-shadow:0 14px 34px rgba(31,35,87,.2)">
+      <div style="align-self:stretch; background:#4B5BE8; color:#fff; border-radius:999px; padding:10px; font-weight:700; font-size:18px">{{ res.title }}</div>
+      <div style="font-size:44px; font-weight:700; line-height:1; color:{{ res.color }}">{{ res.pts }}</div>
+      <div style="font-size:14px; color:#6B70A0">{{ res.sub }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; align-self:stretch">
+        <button onClick="{{ restart }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#F2508E; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #C93670">{{ labels.again }}</button>
+        <button onClick="{{ back }}" style="border:0; cursor:pointer; border-radius:999px; padding:13px; background:#4B5BE8; color:#fff; font-weight:700; font-size:16px; font-family:inherit; box-shadow:0 4px 0 #3343C9">{{ labels.back }}</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:640}}">
+const WORDS = 'PERRO CASAS MANGO PLAYA NUBES LIMON TANGO MATES SILLA MONTE ARBOL FUEGO LLAVE QUESO PIANO RELOJ BARCO CIELO VERDE NEGRO DULCE CALLE PAPEL LIBRO HUEVO CARTA PLATO FRUTA GLOBO NIEVE TIGRE CEBRA PATIO RADIO LUNES MARZO ABRIL CAMPO LECHE TORTA PESCA VIAJE AMIGO BAILE CANTO DISCO FIRMA GORRA HOTEL JUEGO LAPIZ MOTOS NARIZ OLIVO PERLA RATON TRIGO VELAS ZORRO PLUMA BROMA CLAVO GRANO HIELO LAGOS MONTA NOCHE PARED RUEDA SALSA TECHO VASOS YERBA ASADO CHICO FLACO GANSO HOJAS JAULA KIWIS MIMOS NOVIA OSITO PISTA'.split(' ');
+const WORDS_HE = 'שולחן מחשבה ספרים משפחה תלמיד מכונה גלידה מטריה אבטיח מנורה מספרה ארנבת צפרדע שמיים בננות פרחים עננים ירקות פירות חברים טלפון מחברת עפרון שמלות קפיצה ריקוד שירים חגיגה רכבות תמונה ספינה מקלחת חומוס פלאפל בורקס עוגיה גבינה ארוחה קיבוץ חופשה נסיעה שמשיה גיטרה פסנתר חברות'.split(' ');
+const ROWS = ['QWERTYUIOP', 'ASDFGHJKLÑ', '⏎ZXCVBNM⌫'];
+const ROWS_HE = ['קראטוןםפ', 'שדגכעיחלךף', '⏎זסבהנמצתץ⌫'];
+const T = { es:{ won:'¡La adivinaste!', lost:'No la adivinaste', tries:'en {a} de 6 intentos', guess:'Adiviná la palabra de 5 letras', short:'Faltan letras', waiting:'{n} está jugando la misma palabra…', word:'La palabra era {w}', you:'Vos: {a}', them:'{n}: {b}' },
+            he:{ won:'ניחשתם!', lost:'לא ניחשתם', tries:'ב־{a} מתוך 6 ניסיונות', guess:'נחשו מילה בעברית בת 5 אותיות', short:'חסרות אותיות', waiting:'{n} משחק/ת על אותה מילה…', word:'המילה הייתה {w}', you:'את/ה: {a}', them:'{n}: {b}' } };
+const fmt = (s, o) => s.replace(/\{(\w)\}/g, (_, k) => o[k] ?? '');
+const score = (g, t) => { const r = Array(5).fill('x'), left = t.split('');
+  for (let i = 0; i < 5; i++) if (g[i] === t[i]) { r[i] = 'g'; left[i] = null; }
+  for (let i = 0; i < 5; i++) if (r[i] !== 'g') { const j = left.indexOf(g[i]); if (j >= 0) { r[i] = 'y'; left[j] = null; } }
+  return r; };
+const COL = { g:['#7FC21F','#fff','#7FC21F'], y:['#FFC93C','#1F2357','#FFC93C'], x:['#A3A7C7','#fff','#A3A7C7'] };
+
+class Component extends DCLogic {
+  init() { const W = this.props.lang === 'he' ? WORDS_HE : WORDS; return { wl:this.props.lang === 'he' ? 'he' : 'es', target:W[Math.floor(Math.random() * W.length)], guesses:[], cur:'', phase:'play', ft:0, msg:'', result:null }; }
+  state = this.init();
+  componentDidMount() { this.kh = e => { if (this.state.phase !== 'play') return; if (e.key === 'Enter') this.key('⏎'); else if (e.key === 'Backspace') this.key('⌫'); else if (this.state.wl === 'he' ? /^[\u05D0-\u05EA]$/.test(e.key) : /^[a-zñ]$/i.test(e.key)) this.key(e.key.toUpperCase()); }; window.addEventListener('keydown', this.kh); }
+  componentWillUnmount() { window.removeEventListener('keydown', this.kh); clearTimeout(this.tm); }
+  key(k) {
+    const s = this.state; if (s.phase !== 'play') return;
+    if (k === '⌫') return this.setState({ cur:s.cur.slice(0, -1), msg:'' });
+    if (k === '⏎') {
+      if (s.cur.length < 5) return this.setState({ msg:T[this.props.lang === 'he' ? 'he' : 'es'].short });
+      const guesses = [...s.guesses, s.cur]; const won = s.cur === s.target;
+      if (won || guesses.length === 6) {
+        const r = won ? 'me' : 'friend';
+        this.setState({ guesses, cur:'', phase:'end', msg:'', result:r }); this.props.onFinish && this.props.onFinish(r);
+        return;
+      }
+      return this.setState({ guesses, cur:'', msg:'' });
+    }
+    if (s.cur.length < 5) this.setState({ cur:s.cur + k, msg:'' });
+  }
+  renderVals() {
+    const L = this.props.labels || {}; const t = T[this.props.lang === 'he' ? 'he' : 'es'];
+    if (this.state.wl !== (this.props.lang === 'he' ? 'he' : 'es') && !this.state.guesses.length && !this.state.cur) setTimeout(() => this.setState(this.init()));
+    const { target, guesses, cur, phase, ft, result, msg, wl } = this.state; const isHe = wl === 'he';
+    const T5 = [...target], G5 = g => [...g]; const fn = this.props.friendName || '';
+    const RK = { x:1, y:2, g:3 }, best = {}; guesses.forEach(g => score(g, target).forEach((r, i) => { if (!best[g[i]] || RK[r] > RK[best[g[i]]]) best[g[i]] = r; }));
+    const rows = Array.from({ length:6 }, (_, r) => {
+      const g = guesses[r], live = r === guesses.length && phase === 'play';
+      const sc = g ? score(g, target) : null;
+      return { tiles:Array.from({ length:5 }, (_, i) => {
+        if (g) { const c = COL[sc[i]]; return { ch:g[i], bg:c[0], color:c[1], border:c[2] }; }
+        const ch = live ? (cur[i] || '') : '';
+        return { ch, bg:'#fff', color:'#1F2357', border: ch ? '#4B5BE8' : '#DDE1FF' };
+      }) };
+    });
+    const kb = (isHe ? ROWS_HE : ROWS).map(row => ({ keys:[...row].map(k => { const st = best[k]; const c = st ? COL[st] : ['#EEF0FF','#1F2357'];
+      return { label:k, flex: k === '⏎' || k === '⌫' ? 1.5 : 1, size: k === '⏎' || k === '⌫' ? '20px' : '16px', bg: k === '⏎' ? '#F2508E' : c[0], color: k === '⏎' ? '#fff' : c[1], onClick:() => this.key(k) }; }) }));
+    const won = guesses[guesses.length - 1] === target;
+    const sub = won ? fmt(t.tries, { a:guesses.length }) : fmt(t.word, { w:target });
+    return {
+      labels:L, rows, kb, wdir: isHe ? 'rtl' : 'ltr', playing: phase === 'play', msg: phase === 'wait' ? fmt(t.waiting, { n:fn }) : msg, done:!!result,
+      status: result ? { text: result === 'me' ? t.won : t.lost, bg:'#1F2357', color:'#fff' } : { text:t.guess, bg:'#FFC93C', color:'#1F2357' },
+      res: result ? { title: result === 'me' ? t.won : t.lost, pts: result === 'me' ? '+30' : result === 'draw' ? '+10' : '+0', color: result === 'me' ? '#F2508E' : result === 'draw' ? '#4B5BE8' : '#FF8A2A', sub } : {},
+      restart:() => { clearTimeout(this.tm); this.setState(this.init()); }, back:() => this.props.onBack && this.props.onBack()
+    };
+  }
+}
+</script>
+</body>
+</html>
